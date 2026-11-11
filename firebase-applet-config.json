@@ -1,0 +1,10 @@
+{
+  "projectId": "moeen-calc",
+  "appId": "1:188561562173:web:fb4057960d26722296e854",
+  "apiKey": "AIzaSyDt3MOyoqCzeyT-3ajuDAWzITdBVht5urM",
+  "authDomain": "moeen-calc.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "moeen-calc.firebasestorage.app",
+  "messagingSenderId": "188561562173",
+  "measurementId": "G-TP3VHK9D1T"
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://moeen-calc.web.app/sitemap.xml

@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User profile document containing account and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Full name or company name" },
+        "photoURL": { "type": "string", "description": "Avatar photo URL" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "role": { "type": "string", "description": "Engineering role or user type" },
+        "accountType": { "type": "string", "description": "Account category: individual or company" },
+        "companyName": { "type": "string", "description": "Company or engineering office name" },
+        "taxOrRegNumber": { "type": "string", "description": "Commercial registration or syndicate membership number" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Update ISO timestamp" }
+      },
+      "required": ["uid", "email", "displayName"]
+    },
+    "project": {
+      "title": "Project",
+      "description": "Engineering project estimate containing BOQ, steel, concrete and client details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique Project ID" },
+        "userId": { "type": "string", "description": "UID of owner" },
+        "projectName": { "type": "string", "description": "Project title" },
+        "reportName": { "type": "string", "description": "Report name" },
+        "ownerName": { "type": "string", "description": "Client or owner name" },
+        "location": { "type": "string", "description": "Project site location" },
+        "date": { "type": "string", "description": "Report date string" },
+        "customFields": { "type": "array", "description": "Custom user metadata fields" },
+        "currency": { "type": "string", "description": "Currency code like EGP, SAR, USD" },
+        "finishesTotal": { "type": "number", "description": "Total architectural finishes cost" },
+        "finishesMaterials": { "type": "number", "description": "Total finishes material cost" },
+        "finishesLabor": { "type": "number", "description": "Total finishes labor cost" },
+        "finishesItemsCount": { "type": "number", "description": "Number of measured items" },
+        "steelTons": { "type": "number", "description": "Estimated rebar tons" },
+        "steelCost": { "type": "number", "description": "Estimated rebar purchasing cost" },
+        "concreteVolume": { "type": "number", "description": "Reinforced concrete volume m3" },
+        "concreteCementBags": { "type": "number", "description": "Required cement bags" },
+        "concreteCost": { "type": "number", "description": "Concrete execution cost" },
+        "contingencyRate": { "type": "number", "description": "Contingency reserve rate percentage" },
+        "grandTotal": { "type": "number", "description": "Grand total estimated budget" },
+        "notes": { "type": "string", "description": "Engineering and execution notes" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Update ISO timestamp" }
+      },
+      "required": ["id", "userId", "projectName", "currency", "grandTotal"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "User profile document containing account and role information"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": "project",
+      "description": "User-owned architectural and structural projects"
+    }
+  }
+}

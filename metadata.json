@@ -1,0 +1,8 @@
+{
+  "name": "حاسبة البناء والتشطيبات وحصر الحديد",
+  "description": "حاسبة هندسية شاملة للتشطيبات المعمارية وحساب كميات المواد وبنود التكلفة وحصر حديد التسليح والخرسانة للمهندسين والمقبلين على البناء والتشطيب.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

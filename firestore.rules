@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // حساب الإدارة (حسابك أنت فقط)
+    function isAdmin() {
+      return isSignedIn() && request.auth.uid == '7Mdy4ctJVQe1SDjWF8xPdLgyiPj2';
+    }
+
+    // ===== بيانات المستخدم ومشروعاته: كل مستخدم يرى بياناته فقط =====
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /projects/{projectId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ===== رصيد التقارير لكل مستخدم =====
+    match /entitlements/{uid} {
+      allow read: if isOwner(uid);
+
+      // أول إنشاء: 5 تقارير مجانية فقط
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['used', 'limit', 'createdAt'])
+        && request.resource.data.used == 0
+        && request.resource.data.limit == 5;
+
+      allow update: if isOwner(uid) && (
+        // (أ) استهلاك تقرير واحد فقط في كل مرة، ولا يتجاوز الحد
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used'])
+          && request.resource.data.used == resource.data.used + 1
+          && request.resource.data.used <= resource.data.limit
+        )
+        ||
+        // (ب) تفعيل كود صالح لم يُستخدم من قبل، ويُضاف رصيده كما هو مسجل في الكود
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['limit', 'lastCode'])
+          && get(/databases/$(database)/documents/codes/$(request.resource.data.lastCode)).data.used == false
+          && getAfter(/databases/$(database)/documents/codes/$(request.resource.data.lastCode)).data.usedBy == request.auth.uid
+          && request.resource.data.limit == resource.data.limit
+             + get(/databases/$(database)/documents/codes/$(request.resource.data.lastCode)).data.credits
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    // ===== أكواد التفعيل: تُنشأ من لوحة Firebase فقط =====
+    match /codes/{code} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow delete: if isAdmin();
+
+      // إنشاء كود جديد: للإدارة فقط، وبحقول محددة، وغير مستخدم
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['credits', 'used', 'createdAt'])
+        && request.resource.data.used == false
+        && request.resource.data.credits is int
+        && request.resource.data.credits > 0
+        && request.resource.data.credits <= 10000;
+
+      allow update: if isSignedIn()
+        && resource.data.used == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && getAfter(/databases/$(database)/documents/entitlements/$(request.auth.uid)).data.lastCode == code;
+    }
+
+    /*reviews*/
+    // ===== تقييمات المستخدمين: القراءة للجميع، والكتابة للمسجلين (تقييم واحد لكل مستخدم) =====
+    function validReview(d) {
+      return d.keys().hasOnly(['uid', 'name', 'rating', 'text', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['uid', 'name', 'rating', 'createdAt', 'updatedAt'])
+        && d.uid == request.auth.uid
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.rating is int && d.rating >= 1 && d.rating <= 5
+        && d.text is string && d.text.size() <= 600
+        && d.createdAt is string && d.updatedAt is string;
+    }
+
+    match /reviews/{uid} {
+      allow read: if true;
+      allow create: if isOwner(uid) && validReview(request.resource.data);
+      allow update: if isOwner(uid) && validReview(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+  }
+}
