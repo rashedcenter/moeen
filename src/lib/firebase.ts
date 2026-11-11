@@ -315,6 +315,42 @@ export async function loginWithEmail(email: string, pass: string): Promise<UserP
   return profile;
 }
 
+// ======================= UPDATE PROFILE API =======================
+export async function updateUserProfile(
+  uid: string,
+  updates: {
+    name?: string;
+    phone?: string;
+    role?: string;
+    companyName?: string;
+    taxOrRegNumber?: string;
+  }
+): Promise<void> {
+  try {
+    // 1. تحديث الاسم في Firebase Auth (لو موجود)
+    if (auth.currentUser && updates.name) {
+      const { updateProfile } = await import('firebase/auth');
+      await updateProfile(auth.currentUser, { displayName: updates.name });
+    }
+
+    // 2. تحديث البيانات في Firestore
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, {
+      displayName: updates.name,
+      phone: updates.phone,
+      role: updates.role,
+      companyName: updates.companyName,
+      taxOrRegNumber: updates.taxOrRegNumber,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    trackEvent('update_profile', { uid });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+}
+
 /**
  * Register with Email, Password, Name and Role
  */
@@ -370,6 +406,8 @@ export async function registerWithEmail(
   trackEvent('sign_up', { method: 'email', account_type: accountType });
   return profile;
 }
+
+
 
 /**
  * Send Password Reset Email

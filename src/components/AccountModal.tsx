@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, AccountType } from '../types';
 import { saveCurrentUser } from '../data/projectStore';
 import {
@@ -7,6 +7,7 @@ import {
   registerWithEmail,
   resetPasswordEmail,
   logOutFirebase,
+  updateUserProfile, // تم إضافة دالة التعديل هنا
 } from '../lib/firebase';
 import {
   User,
@@ -25,6 +26,8 @@ import {
   CheckCircle2,
   Building2,
   FileBadge,
+  Edit3, // أيقونة التعديل
+  Save,  // أيقونة الحفظ
 } from 'lucide-react';
 
 interface AccountModalProps {
@@ -60,6 +63,26 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [isResetMode, setIsResetMode] = useState(false);
+
+  // States الخاصة بتعديل البروفايل (تمت إضافتها بدقة)
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editCompany, setEditCompany] = useState('');
+  const [editTax, setEditTax] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+
+  // تحديث القيم الافتراضية لما المستخدم يسجل دخول
+  useEffect(() => {
+    if (currentUser) {
+      setEditName(currentUser.name || '');
+      setEditPhone(currentUser.phone || '');
+      setEditRole(currentUser.role || '');
+      setEditCompany(currentUser.companyName || '');
+      setEditTax(currentUser.taxOrRegNumber || '');
+    }
+  }, [currentUser]);
 
   if (!isOpen) return null;
 
@@ -209,6 +232,41 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     setLoading(false);
   };
 
+  // دالة حفظ التعديلات (تمت إضافتها بدقة)
+  const handleSaveProfile = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    setSaveSuccess(null);
+    setError(null);
+    try {
+      await updateUserProfile(currentUser.id, {
+        name: editName,
+        phone: editPhone,
+        role: editRole,
+        companyName: editCompany,
+        taxOrRegNumber: editTax,
+      });
+      
+      const updatedUser = {
+        ...currentUser,
+        name: editName,
+        phone: editPhone,
+        role: editRole,
+        companyName: editCompany,
+        taxOrRegNumber: editTax,
+      };
+      saveCurrentUser(updatedUser);
+      onUserChange(updatedUser);
+      
+      setSaveSuccess('تم حفظ التعديلات بنجاح!');
+      setIsEditingProfile(false);
+    } catch (err) {
+      setError('حدث خطأ أثناء حفظ البيانات. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div
@@ -252,31 +310,110 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           {currentUser ? (
             /* Logged In Profile View */
             <div className="space-y-5">
+              
+              {saveSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> <span className="font-semibold">{saveSuccess}</span>
+                </div>
+              )}
+
+              {error && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" /> <span className="font-medium">{error}</span>
+                </div>
+              )}
+
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-[#003C69] text-white flex items-center justify-center font-bold text-lg shrink-0 border-2 border-[#B1A06D]">
                   {(currentUser.name || currentUser.email || "؟").charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-slate-900 text-base">{currentUser.name}</h3>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800">
-                      {currentUser.accountType === 'company' ? '🏢 حساب شركة / مكتب' : '👤 حساب فردي'}
-                    </span>
-                    {currentUser.role && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200 text-slate-700">
-                        {currentUser.role}
-                      </span>
-                    )}
-                  </div>
-                  {currentUser.companyName && (
-                    <p className="text-xs text-[#003C69] font-bold mt-1">المنشأة: {currentUser.companyName}</p>
-                  )}
-                  <p className="text-xs text-slate-500 mt-0.5 font-mono">{currentUser.email}</p>
-                  {currentUser.phone && (
-                    <p className="text-xs text-slate-500 mt-0.5">الهاتف: {currentUser.phone}</p>
-                  )}
-                  {currentUser.taxOrRegNumber && (
-                    <p className="text-xs text-slate-500 mt-0.5">السجل/القيد: {currentUser.taxOrRegNumber}</p>
+                  {isEditingProfile ? (
+                    /* فورم التعديل */
+                    <div className="space-y-3 mt-1">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1">الاسم</label>
+                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:border-[#003C69] outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1">رقم الهاتف</label>
+                        <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:border-[#003C69] outline-none" />
+                      </div>
+                      {currentUser.accountType === 'company' && (
+                        <>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-1">اسم الشركة</label>
+                            <input type="text" value={editCompany} onChange={(e) => setEditCompany(e.target.value)} className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:border-[#003C69] outline-none" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-1">السجل التجاري / القيد</label>
+                            <input type="text" value={editTax} onChange={(e) => setEditTax(e.target.value)} className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:border-[#003C69] outline-none" />
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1">الصفة / التخصص</label>
+                        <select 
+                          value={editRole} 
+                          onChange={(e) => setEditRole(e.target.value)} 
+                          className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:border-[#003C69] outline-none bg-white"
+                        >
+                          {currentUser.accountType === 'company' ? (
+                            <>
+                              <option value="مكتب استشارات وتصميم هندسي">مكتب استشارات وتصميم هندسي</option>
+                              <option value="شركة مقاولات وتنفيذ وبناء">شركة مقاولات وتنفيذ وبناء</option>
+                              <option value="شركة تطوير واستثمار عقاري">شركة تطوير واستثمار عقاري</option>
+                              <option value="مكتب تصميم معماري وتشطيبات">مكتب تصميم معماري وتشطيبات وديكور</option>
+                              <option value="شركة إدارة مشروعات">شركة إدارة مشروعات وإشراف</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="مهندس معماري">مهندس معماري</option>
+                              <option value="مهندس إنشائي">مهندس إنشائي</option>
+                              <option value="مهندس استشاري">مهندس استشاري</option>
+                              <option value="مهندس مكتب فني وحصر">مهندس مكتب فني وحصر كميات</option>
+                              <option value="مقاول تنفيذ">مقاول تنفيذ وبناء</option>
+                              <option value="مالك مشروع / عميل">مالك مشروع / عميل</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button onClick={handleSaveProfile} disabled={loading} className="flex-1 py-1.5 bg-[#00B050] hover:bg-[#009b46] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} حفظ
+                        </button>
+                        <button onClick={() => setIsEditingProfile(false)} className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition-colors cursor-pointer">إلغاء</button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* عرض البيانات */
+                    <>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-slate-900 text-base">{currentUser.name}</h3>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800">
+                          {currentUser.accountType === 'company' ? '🏢 حساب شركة / مكتب' : '👤 حساب فردي'}
+                        </span>
+                        {currentUser.role && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200 text-slate-700">
+                            {currentUser.role}
+                          </span>
+                        )}
+                      </div>
+                      {currentUser.companyName && (
+                        <p className="text-xs text-[#003C69] font-bold mt-1">المنشأة: {currentUser.companyName}</p>
+                      )}
+                      <p className="text-xs text-slate-500 mt-0.5 font-mono">{currentUser.email}</p>
+                      {currentUser.phone && (
+                        <p className="text-xs text-slate-500 mt-0.5">الهاتف: {currentUser.phone}</p>
+                      )}
+                      {currentUser.taxOrRegNumber && (
+                        <p className="text-xs text-slate-500 mt-0.5">السجل/القيد: {currentUser.taxOrRegNumber}</p>
+                      )}
+                      
+                      <button onClick={() => setIsEditingProfile(true)} className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#003C69] bg-white border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                        <Edit3 className="w-3.5 h-3.5" /> تعديل بيانات الحساب
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
