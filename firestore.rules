@@ -96,5 +96,35 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isOwner(uid) || isAdmin();
     }
+
+    // ================= قواعد نظام الشركات =================
+    match /companies/{companyId} {
+      // أي حد مسجل يقدر يقرأ بيانات الشركة
+      allow read: if isSignedIn(); 
+      
+      // إنشاء شركة جديدة أو تعديلها: لصاحب النظام فقط
+      allow write: if isAdmin();
+
+      match /members/{memberId} {
+        // أي حد مسجل يقدر يقرأ الأعضاء
+        allow read: if isSignedIn();
+        
+        // الكتابة (إضافة/تعديل/حذف) لصاحب النظام فقط
+        allow write: if isAdmin(); 
+      }
+
+      match /projects/{projectId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin() || isSignedIn();
+
+        match /items/{itemId} {
+          allow read, write: if isSignedIn();
+        }
+
+        match /entries/{entryId} {
+          allow read, write: if isSignedIn();
+        }
+      }
+    }
   }
 }

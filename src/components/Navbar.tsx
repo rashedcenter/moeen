@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CurrencyCode, UserProfile } from '../types';
 import { CURRENCIES, loadCurrencyPricingMode, getActiveRate } from '../data/currencies';
+import { Link } from 'react-router-dom'; // تمت الإضافة
 import {
   Building2,
   Layers,
@@ -48,8 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#003C69] text-white border-b-4 border-[#B1A06D] shadow-md">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">{/*nav-fixed*/}
-        <div className="flex flex-wrap items-center justify-between min-h-16 py-2 gap-x-3 gap-y-2">{/*mobile-fixed*/}
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-between min-h-16 py-2 gap-x-3 gap-y-2">
           
           {/* Brand Zone */}
           <div className="flex items-center gap-3 min-w-0">
@@ -111,6 +112,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Controls: Projects, Account, Currency & Print */}
           <div className="flex items-center gap-2 shrink-0">
             
+            {/* زرار نظام الشركات - تمت الإضافة */}
+            <Link 
+              to="/company" 
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#B1A06D]/20 hover:bg-[#B1A06D]/40 border border-[#B1A06D]/50 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer"
+            >
+              <Building2 className="w-4 h-4 text-[#B1A06D]" />
+              <span>الشركات</span>
+            </Link>
+
             {/* Quick My Projects Button (Only visible after login) */}
             {currentUser && (
               <button
@@ -307,6 +317,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             3. التقرير الإجمالي
           </button>
+          {/* Mobile link for company system */}
+          <Link to="/company" className="px-3 py-1.5 text-xs font-bold text-[#B1A06D] border border-[#B1A06D]/40 rounded-md whitespace-nowrap">
+            الشركات
+          </Link>
         </div>
       </div>
     </header>
